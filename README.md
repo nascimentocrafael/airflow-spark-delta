@@ -4,9 +4,9 @@
 
 PREREQ TO RUN ON WINDOWS:
 
-	* [WSL 2.0](https://learn.microsoft.com/en-us/windows/wsl/install-manual#step-4---download-the-linux-kernel-update-package)
-	* [Docker](https://docs.docker.com/desktop/install/windows-install/)
-	* You might need to change line endings from CRLF to LF of Dockerfiles inside docker/\*/, docker/docker-airflow/entrypoint.sh, docker/docker-compose.yml and docker/docker-airflow/pg-init-scripts/init-user-db.sh. 
+* [WSL 2.0](https://learn.microsoft.com/en-us/windows/wsl/install-manual#step-4---download-the-linux-kernel-update-package)
+* [Docker](https://docs.docker.com/desktop/install/windows-install/)
+* You might need to change line endings from CRLF to LF of Dockerfiles inside docker/\*/, docker/docker-airflow/entrypoint.sh, docker/docker-compose.yml and docker/docker-airflow/pg-init-scripts/init-user-db.sh. 
 
 This project contains the following containers:
 
@@ -128,11 +128,11 @@ $ docker exec -it docker_spark_1 spark-submit --master spark://spark:7077 /usr/l
 
 ## Increasing the number of Spark Workers
 
-You can increase the number of Spark workers just adding new services based on `bitnami/spark:3.1.2` image to the `docker-compose.yml` file like following:
+You can increase the number of Spark workers just adding new services based on below code to the `docker-compose.yml` file like following:
 
 ```
 spark-worker-n:
-        image: bitnami/spark:3.3.2
+        build: "./docker-pyspark-delta"
         user: root
         networks:
             - default_net
@@ -145,11 +145,11 @@ spark-worker-n:
             - SPARK_RPC_ENCRYPTION_ENABLED=no
             - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
             - SPARK_SSL_ENABLED=no
-			- PYSPARK_PYTHON=/opt/bitnami/python/bin/python3
+            - PYSPARK_PYTHON=/opt/bitnami/python/bin/python3
             - PYSPARK_DRIVER_PYTHON=/opt/bitnami/python/bin/python3
         volumes:
             - ../spark/app:/usr/local/spark/app # Spark scripts folder (Must be the same path in airflow and Spark Cluster)
-            - ../spark/resources/data:/usr/local/spark/resources/data #Data folder (Must be the same path in airflow and Spark Cluster)
+            - ../spark/resources:/usr/local/spark/resources #Resources folder (Must be the same path in airflow and Spark Cluster)
 
 ```
 
