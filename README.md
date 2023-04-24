@@ -1,31 +1,40 @@
-# Airflow Spark
+# Airflow Spark Delta
+
+**THIS PROJECT IS A FORK FROM [airflow-spark](https://github.com/cordon-thiago/airflow-spark) WITH UPDATED VERSIONS OF PYTHON, POSTGRES, AIRFLOW, SPARK AND THE ADDITION OF DELTA (delta-spark==2.3.0).**
+
+PREREQ TO RUN ON WINDOWS:
+
+	* [WSL 2.0](https://learn.microsoft.com/en-us/windows/wsl/install-manual#step-4---download-the-linux-kernel-update-package)
+	* [Docker](https://docs.docker.com/desktop/install/windows-install/)
+	* You might need to change line endings from CRLF to LF of Dockerfiles inside docker/\*/, docker/docker-airflow/entrypoint.sh, docker/docker-compose.yml and docker/docker-airflow/pg-init-scripts/init-user-db.sh. 
 
 This project contains the following containers:
 
 * postgres: Postgres database for Airflow metadata and a Test database to test whatever you want.
-    * Image: postgres:9.6
+    * Image: postgres:13.10-alpine
     * Database Port: 5432
     * References: https://hub.docker.com/_/postgres
 
 * airflow-webserver: Airflow webserver and Scheduler.
-    * Image: docker-airflow-spark:1.10.7_3.1.2
+    * Image: docker-airflow-spark:2.5.3_3.3.2
     * Port: 8282
+	* Based on: PYTHON:3.9 using AIRFLOW 2.5.3, SPARK 3.3.2 and HADOOP 3
 
 * spark: Spark Master.
-    * Image: bitnami/spark:3.1.2
+    * Image: bitnami/spark:3.3.2
     * Port: 8181
     * References: 
       * https://github.com/bitnami/bitnami-docker-spark
       * https://hub.docker.com/r/bitnami/spark/tags/?page=1&ordering=last_updated
 
 * spark-worker-N: Spark workers. You can add workers copying the containers and changing the container name inside the docker-compose.yml file.
-    * Image: bitnami/spark:3.1.2
+    * Image: bitnami/spark:3.3.2
     * References: 
       * https://github.com/bitnami/bitnami-docker-spark
       * https://hub.docker.com/r/bitnami/spark/tags/?page=1&ordering=last_updated
 
 * jupyter-spark: Jupyter notebook with pyspark for interactive development.
-  * Image: jupyter/pyspark-notebook:spark-3.1.2
+  * Image: jupyter/pyspark-notebook:spark-3.3.2
   * Port: 8888
   * References: 
     * https://hub.docker.com/layers/jupyter/pyspark-notebook/spark-3.1.2/images/sha256-37398efc9e51f868e0e1fde8e93df67bae0f9c77d3d3ce7fe3830faeb47afe4d?context=explore
@@ -40,30 +49,22 @@ This project contains the following containers:
 
 ### Clone project
 
-    $ git clone https://github.com/cordon-thiago/airflow-spark
+    $ git clone https://github.com/nascimentocrafael/airflow-spark-delta
 
 ### Build airflow Docker
 
 Inside the airflow-spark/docker/docker-airflow
 
-    $ docker build --rm --force-rm -t docker-airflow-spark:1.10.7_3.1.2 .
+    $ docker build --rm --force-rm -t docker-airflow-spark:2.5.3_3.3.2 .
 
-Optionally, you can override the arguments in the build to choose specific Spark, Hadoop and Airflow versions. As an example, here is how to build an image containing Airflow version `1.10.14`, Spark version `2.4.7` and Hadoop version `2.7`.
-
-    $ docker build --rm --force-rm \
-    -t docker-airflow-spark:1.10.14_2.4.7 . \
-    --build-arg AIRFLOW_VERSION=1.10.14 \
-    --build-arg SPARK_VERSION=2.4.7 \
-    --build-arg HADOOP_VERSION=2.7
-
-Spark and hadoop versions follow the versions as defined at Spark download page: https://spark.apache.org/downloads.html
-
-Airflow versions can be found here: https://pypi.org/project/apache-airflow/#history
-
-If you change the name or the tag of the docker image when building, remember to update the name/tag in docker-compose file.
 ### Start containers
 
-Navigate to airflow-spark/docker and:
+Inside the airflow-spark/docker create airflow user:
+
+	$ docker-compose run airflow-webserver airflow users create --role Admin --username admin --email admin --firstname admin --lastname admin --password admin
+
+
+Start the containers:
 
     $ docker-compose up
 
@@ -71,7 +72,7 @@ If you want to run in background:
 
     $ docker-compose up -d
 
-Note: when running the docker-compose for the first time, the images `postgres:9.6`, `bitnami/spark:3.1.2` and `jupyter/pyspark-notebook:spark-3.1.2` will be downloaded before the containers started.
+Note: when running the docker-compose for the first time, the images of `postgres`, `bitnami/spark` and `jupyter/pyspark-notebook` will be downloaded before the containers started.
 
 ### Check if you can access
 
@@ -131,7 +132,7 @@ You can increase the number of Spark workers just adding new services based on `
 
 ```
 spark-worker-n:
-        image: bitnami/spark:3.1.2
+        image: bitnami/spark:3.3.2
         user: root
         networks:
             - default_net
@@ -144,6 +145,8 @@ spark-worker-n:
             - SPARK_RPC_ENCRYPTION_ENABLED=no
             - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
             - SPARK_SSL_ENABLED=no
+			- PYSPARK_PYTHON=/opt/bitnami/python/bin/python3
+            - PYSPARK_DRIVER_PYTHON=/opt/bitnami/python/bin/python3
         volumes:
             - ../spark/app:/usr/local/spark/app # Spark scripts folder (Must be the same path in airflow and Spark Cluster)
             - ../spark/resources/data:/usr/local/spark/resources/data #Data folder (Must be the same path in airflow and Spark Cluster)
@@ -154,7 +157,7 @@ spark-worker-n:
 
 Rebuild Dockerfile (in this example, adding GCP extra):
 
-    $ docker build --rm --build-arg AIRFLOW_DEPS="gcp" -t docker-airflow-spark:1.10.7_3.1.2 .
+    $ docker build --rm --build-arg AIRFLOW_DEPS="gcp" -t docker-airflow-spark:2.5.3_3.3.2 .
 
 After successfully built, run docker-compose to start container:
 
@@ -188,7 +191,8 @@ More info at: https://github.com/puckel/docker-airflow#build
     $ docker-compose -f <compose-file.yml> down --remove-orphans
     
 # Extras
-## Spark + Postgres sample
+## Spark + Delta sample
 
-* The DAG [spark-postgres.py](dags/spark-postgres.py) loads [movies.csv](spark/resources/data/movies.csv) and [ratings.csv](spark/resources/data/ratings.csv) data into Postgres tables and query these tables to generate a list of top 10 movies with more rates.
-  * This DAG runs the load-postgres.py and read-postgres.py applications. These applications are also available in the notebooks [load-postgres-notebook.ipynb](notebooks/load-postgres-notebook.ipynb) and [read-postgres-notebook.ipynb](notebooks/read-postgres-notebook.ipynb).
+* The DAG [spark-delta-test.py](dags/spark-delta-test.py) loads [movies.csv](spark/resources/data/movies.csv)  data into delta tables.
+  * This DAG runs the load-delta.py application.
+  * To read the delta table you can use the [read-delta-notebook](notebooks/read-delta-notebook.ipynb)

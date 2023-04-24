@@ -2,7 +2,7 @@ version: "3.7"
 services:  
     # postgres used by airflow
     postgres:
-        image: postgres:9.6
+        image: postgres:13.10-alpine
         networks:
             - default_net
         volumes: 
@@ -17,7 +17,7 @@ services:
 
     # airflow LocalExecutor
     airflow-webserver:
-        image: docker-airflow-spark:1.10.7_3.1.2
+        image: docker-airflow-spark:2.5.3_3.3.2
         restart: always
         networks:
             - default_net
@@ -41,7 +41,7 @@ services:
 
     # Spark with 3 workers
     spark:
-        image: bitnami/spark:3.1.2
+        build: "./docker-pyspark-delta"
         user: root # Run container as root container: https://docs.bitnami.com/tutorials/work-with-non-root-containers/
         hostname: spark
         networks:
@@ -52,6 +52,8 @@ services:
             - SPARK_RPC_ENCRYPTION_ENABLED=no
             - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
             - SPARK_SSL_ENABLED=no
+            - PYSPARK_PYTHON=/opt/bitnami/python/bin/python3
+            - PYSPARK_DRIVER_PYTHON=/opt/bitnami/python/bin/python3
         volumes:
             - ../spark/app:/usr/local/spark/app # Spark scripts folder (Must be the same path in airflow and Spark Cluster)
             - ../spark/resources:/usr/local/spark/resources #Resources folder (Must be the same path in airflow and Spark Cluster)
@@ -60,7 +62,7 @@ services:
             - "7077:7077"
 
     spark-worker-1:
-        image: bitnami/spark:3.1.2
+        build: "./docker-pyspark-delta"
         user: root
         networks:
             - default_net
@@ -73,12 +75,14 @@ services:
             - SPARK_RPC_ENCRYPTION_ENABLED=no
             - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
             - SPARK_SSL_ENABLED=no
+            - PYSPARK_PYTHON=/opt/bitnami/python/bin/python3
+            - PYSPARK_DRIVER_PYTHON=/opt/bitnami/python/bin/python3
         volumes:
             - ../spark/app:/usr/local/spark/app # Spark scripts folder (Must be the same path in airflow and Spark Cluster)
             - ../spark/resources:/usr/local/spark/resources #Resources folder (Must be the same path in airflow and Spark Cluster)
 
     spark-worker-2:
-        image: bitnami/spark:3.1.2
+        build: "./docker-pyspark-delta"
         user: root
         networks:
             - default_net
@@ -91,12 +95,14 @@ services:
             - SPARK_RPC_ENCRYPTION_ENABLED=no
             - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
             - SPARK_SSL_ENABLED=no
+            - PYSPARK_PYTHON=/opt/bitnami/python/bin/python3
+            - PYSPARK_DRIVER_PYTHON=/opt/bitnami/python/bin/python3
         volumes:
             - ../spark/app:/usr/local/spark/app # Spark scripts folder (Must be the same path in airflow and Spark Cluster)
             - ../spark/resources:/usr/local/spark/resources #Resources folder (Must be the same path in airflow and Spark Cluster)
 
     spark-worker-3:
-        image: bitnami/spark:3.1.2
+        build: "./docker-pyspark-delta"
         user: root
         networks:
             - default_net
@@ -109,13 +115,16 @@ services:
             - SPARK_RPC_ENCRYPTION_ENABLED=no
             - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
             - SPARK_SSL_ENABLED=no
+            - PYSPARK_PYTHON=/opt/bitnami/python/bin/python3
+            - PYSPARK_DRIVER_PYTHON=/opt/bitnami/python/bin/python3
         volumes:
             - ../spark/app:/usr/local/spark/app # Spark scripts folder (Must be the same path in airflow and Spark Cluster)
             - ../spark/resources:/usr/local/spark/resources #Resources folder (Must be the same path in airflow and Spark Cluster)
 
     #Jupyter notebook
     jupyter-spark:
-        image: jupyter/pyspark-notebook:spark-3.1.2
+        #image: jupyter/pyspark-notebook:spark-3.3.2
+        build: "./docker-jupyter-pyspark-delta"
         networks:
             - default_net
         ports:
