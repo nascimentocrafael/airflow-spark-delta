@@ -15,3 +15,4 @@ delta-spark==2.3.0
 SQLAlchemy==1.4.47
 wtforms==3.0.1
 psycopg2-binary==2.9.5
+pandas
